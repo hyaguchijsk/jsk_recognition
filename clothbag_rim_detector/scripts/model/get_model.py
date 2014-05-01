@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+## @package clothbag_rim_detector
+# Obtaining table model
+#
+# @author Hiroaki Yaguchi - h-yaguchi@jsk.t.u-tokyo.ac.jp
+
 import os
 import sys
 import time
@@ -14,6 +22,7 @@ from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 
 import threading
 
+
 def camera_info_callback(msg_camera_info):
   global camera_info, camera_info_flag, time_start, depth_plane_model
   try:
@@ -27,6 +36,7 @@ def camera_info_callback(msg_camera_info):
     camera_info_flag = True
     depth_plane_model = np.zeros((camera_info.height, camera_info.width), dtype=np.float64)
     rospy.Timer(rospy.Duration(0.1), timer_callback)
+
 
 def timer_callback(event):
   global depth_world, depth_plane_model, last_time, count, camera_info, rospy_thread
@@ -59,6 +69,7 @@ def timer_callback(event):
     exit()
   cv2.imshow("depth_plane_model", depth2gray(depth_plane_model))
 
+
 def xyz_world_callback(msg_xyz):
   global depth_world
   try:
@@ -69,8 +80,10 @@ def xyz_world_callback(msg_xyz):
   except CvBridgeError as e:
     rospy.logerr(e)
 
+
 def sleep():
   time.sleep(7)
+
 
 def depth2gray(depth, min_mm=300, max_mm=1000, margin=10):
   # depth max is 4095
@@ -86,11 +99,16 @@ def depth2gray(depth, min_mm=300, max_mm=1000, margin=10):
   except:
     return np.zeros(depth.shape, dtype=np.uint8)
 
+
 if __name__ == '__main__':
   global rospy_thread
   rospy.init_node("detect_rim", anonymous=True)
-  sub_camera_info = rospy.Subscriber("/camera/depth_registered/camera_info", CameraInfo, camera_info_callback)
-  sub_xyz_world = rospy.Subscriber("/my_camera/mat/xyz_world", Image, xyz_world_callback)
+  sub_camera_info = rospy.Subscriber("/camera/depth_registered/camera_info",
+                                     CameraInfo,
+                                     camera_info_callback)
+  sub_xyz_world = rospy.Subscriber("/my_camera/mat/xyz_world",
+                                   Image,
+                                   xyz_world_callback)
 
   rospy_thread = threading.Thread(target = rospy.spin)
   rospy_thread.setDaemon(True)
