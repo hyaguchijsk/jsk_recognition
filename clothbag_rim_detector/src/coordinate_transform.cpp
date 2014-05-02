@@ -12,13 +12,14 @@
 
 #include <pcl/visualization/cloud_viewer.h>
 
-#include "clothbag_rim_detector/camera.hpp"
+#include "clothbag_rim_detector/point_cloud_to_cv_mat.hpp"
+#include "clothbag_rim_detector/camera_image_to_point_cloud.hpp"
 #include "clothbag_rim_detector/coordinate_transform.hpp"
 
 namespace clothbag_rim_detector {
 
 
-MatSet::MatSet(std::string topic_name) : nh() {
+PointCloudToCvMat::PointCloudToCvMat(std::string topic_name) : nh() {
   // pub_color = nh.advertise<sensor_msgs::Image>(topic_name+"/mat/color", 10);
   // pub_depth = nh.advertise<sensor_msgs::Image>(topic_name+"/mat/depth", 10);
   // pub_mask = nh.advertise<sensor_msgs::Image>(topic_name+"/mat/mask", 10);
@@ -29,14 +30,14 @@ MatSet::MatSet(std::string topic_name) : nh() {
 }
 
 
-void MatSet::publish(cloud_type cloud, cloud_type cloud_world) {
-  // color = createMatColor(cloud);
-  // depth = createMatDepth(cloud);
-  // mask = createMatMask(cloud);
-  xyz_camera = createMatXYZ(cloud);
-  normal_camera = createMatNormal(cloud);
-  xyz_world  = createMatXYZ(cloud_world);
-  normal_world  = createMatNormal(cloud_world);
+void PointCloudToCvMat::Publish(cloud_type cloud, cloud_type cloud_world) {
+  // color = CreateMatColor_(cloud);
+  // depth = CreateMatDepth_(cloud);
+  // mask = CreateMatMask_(cloud);
+  xyz_camera = CreateMatXYZ_(cloud);
+  normal_camera = CreateMatNormal_(cloud);
+  xyz_world  = CreateMatXYZ_(cloud_world);
+  normal_world  = CreateMatNormal_(cloud_world);
 
   // bridge.image = color;
   // bridge.encoding = "bgr8";
@@ -67,7 +68,7 @@ void MatSet::publish(cloud_type cloud, cloud_type cloud_world) {
   pub_normal_world.publish(bridge.toImageMsg());
 }
 
-cv::Mat MatSet::createMatXYZ(cloud_type cloud) {
+cv::Mat PointCloudToCvMat::CreateMatXYZ_(cloud_type cloud) {
   cv::Mat xyz = cv::Mat::zeros(cloud.height, cloud.width, CV_32FC3);
   for(int i=0;i<cloud.height;i++){
     for(int j=0;j<cloud.width;j++){
@@ -80,7 +81,7 @@ cv::Mat MatSet::createMatXYZ(cloud_type cloud) {
 }
 
 
-cv::Mat MatSet::createMatNormal(cloud_type cloud) {
+cv::Mat PointCloudToCvMat::CreateMatNormal_(cloud_type cloud) {
   cv::Mat normal = cv::Mat::zeros(cloud.height, cloud.width, CV_32FC3);
   for(int i=0;i<cloud.height;i++){
     for(int j=0;j<cloud.width;j++){
@@ -92,7 +93,7 @@ cv::Mat MatSet::createMatNormal(cloud_type cloud) {
   return normal;
 }
 
-cv::Mat MatSet::createMatMask(cloud_type cloud) {
+cv::Mat PointCloudToCvMat::CreateMatMask_(cloud_type cloud) {
   cv::Mat mask = cv::Mat::zeros(cloud.height, cloud.width, CV_8UC1);
   for(int i=0;i<cloud.height;i++){
     for(int j=0;j<cloud.width;j++){
@@ -102,7 +103,7 @@ cv::Mat MatSet::createMatMask(cloud_type cloud) {
   return mask;
 }
 
-cv::Mat MatSet::createMatColor(cloud_type cloud) {
+cv::Mat PointCloudToCvMat::CreateMatColor_(cloud_type cloud) {
   cv::Mat color = cv::Mat::zeros(cloud.height, cloud.width,CV_8UC3);
   for(int i=0;i<cloud.height;i++){
     for(int j=0;j<cloud.width;j++){
@@ -114,7 +115,7 @@ cv::Mat MatSet::createMatColor(cloud_type cloud) {
   return color;
 }
 
-cv::Mat MatSet::createMatDepth(cloud_type cloud) {
+cv::Mat PointCloudToCvMat::CreateMatDepth_(cloud_type cloud) {
   cv::Mat depth = cv::Mat::zeros(cloud.height, cloud.width,CV_32FC1);
   for(int i=0;i<cloud.height;i++){
     for(int j=0;j<cloud.width;j++){
@@ -125,32 +126,35 @@ cv::Mat MatSet::createMatDepth(cloud_type cloud) {
 }
 
 
-Camera::Camera() : nh(), mat_set("/my_camera") {
-  std::cout << "Camera instance has been created" << std::endl;
+//////////////////////////////////////
+
+
+CameraImageToPointCloud::CameraImageToPointCloud() : nh(), mat_set("/my_camera") {
+  std::cout << "CameraImageToPointCloud instance has been created" << std::endl;
   camera_info_flag = false;
 
-  sub_camera_info = nh.subscribe("/camera/depth_registered/camera_info", 1, &Camera::cameraInfoCallback, this);
+  sub_camera_info = nh.subscribe("/camera/depth_registered/camera_info", 1, &CameraImageToPointCloud::cameraInfoCallback, this);
   pub_cloud = nh.advertise<sensor_msgs::PointCloud2>("/my_camera/points", 10);
 };
 
 
-Camera::~Camera() {
-  std::cerr << "Camera instance has been deleted" << std::endl;
+CameraImageToPointCloud::~CameraImageToPointCloud() {
+  std::cerr << "CameraImageToPointCloud instance has been deleted" << std::endl;
 };
 
 
-void Camera::init() {
+void CameraImageToPointCloud::init() {
   color = cv::Mat::zeros(camera_info.height, camera_info.width,CV_8UC3);
   depth = cv::Mat::zeros(camera_info.height, camera_info.width,CV_32FC1);
   // register callback functions
-  timer = nh.createTimer(ros::Duration(0.1), &Camera::timerCallback, this);
+  timer = nh.createTimer(ros::Duration(0.1), &CameraImageToPointCloud::timerCallback, this);
 
-  sub_color = nh.subscribe("camera/rgb/image_color", 1, &Camera::colorCallback, this);
-  sub_depth = nh.subscribe("camera/depth_registered/image_raw", 1, &Camera::depthCallback, this);
-  // sub_cloud = nh.subscribe("camera/depth_registered/points", 1, &Camera::cloudCallback, this);
+  sub_color = nh.subscribe("camera/rgb/image_color", 1, &CameraImageToPointCloud::colorCallback, this);
+  sub_depth = nh.subscribe("camera/depth_registered/image_raw", 1, &CameraImageToPointCloud::depthCallback, this);
+  // sub_cloud = nh.subscribe("camera/depth_registered/points", 1, &CameraImageToPointCloud::cloudCallback, this);
 }
 
-void Camera::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr &msg_camera_info) {
+void CameraImageToPointCloud::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr &msg_camera_info) {
   if(camera_info_flag) return;
   camera_info = *msg_camera_info;
 
@@ -166,7 +170,7 @@ void Camera::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr &msg_camer
 
 }
 
-void Camera::colorCallback(const sensor_msgs::ImageConstPtr &msg_color) {
+void CameraImageToPointCloud::colorCallback(const sensor_msgs::ImageConstPtr &msg_color) {
   cv_bridge::CvImagePtr bridge;
   try
   {
@@ -180,7 +184,7 @@ void Camera::colorCallback(const sensor_msgs::ImageConstPtr &msg_color) {
   color = bridge->image;
 }
 
-void Camera::depthCallback(const sensor_msgs::ImageConstPtr &msg_depth) {
+void CameraImageToPointCloud::depthCallback(const sensor_msgs::ImageConstPtr &msg_depth) {
   cv_bridge::CvImagePtr bridge;
   try
   {
@@ -225,7 +229,7 @@ void Camera::depthCallback(const sensor_msgs::ImageConstPtr &msg_depth) {
 }
 
 
-// void Camera::cloudCallback(const sensor_msgs::PointCloud2 &msg_cloud)
+// void CameraImageToPointCloud::cloudCallback(const sensor_msgs::PointCloud2 &msg_cloud)
 // {
   // pcl::PCLPointCloud2 cloud_tmp;
   // pcl_conversions::toPCL(msg_cloud, cloud_tmp);
@@ -233,16 +237,16 @@ void Camera::depthCallback(const sensor_msgs::ImageConstPtr &msg_depth) {
 // }
 
 
-void Camera::timerCallback(const ros::TimerEvent &event) {
+void CameraImageToPointCloud::timerCallback(const ros::TimerEvent &event) {
   cloud = createCloud(color, depth);
   computeDepthWorld();
 
   publishCloud(pub_cloud, cloud);
-  mat_set.publish(cloud, cloud_world);
+  mat_set.Publish(cloud, cloud_world);
 }
 
 
-void Camera::computeDepthWorld() {
+void CameraImageToPointCloud::computeDepthWorld() {
   // transform
   try{
     // destination_frame, original_frame
@@ -302,7 +306,7 @@ void Camera::computeDepthWorld() {
 }
 
 
-cloud_type Camera::createCloud(cv::Mat color, cv::Mat depth) {
+cloud_type CameraImageToPointCloud::createCloud(cv::Mat color, cv::Mat depth) {
   cloud_type cloud(camera_info.width, camera_info.height);
   if(camera_info_flag)
   {
@@ -334,7 +338,7 @@ cloud_type Camera::createCloud(cv::Mat color, cv::Mat depth) {
 }
 
 
-void Camera::publishCloud(ros::Publisher pub_cloud, cloud_type cloud) {
+void CameraImageToPointCloud::publishCloud(ros::Publisher pub_cloud, cloud_type cloud) {
   sensor_msgs::PointCloud2 msg_cloud;
   pcl::PCLPointCloud2 cloud_tmp;
   pcl::toPCLPointCloud2(cloud, cloud_tmp);
@@ -345,6 +349,9 @@ void Camera::publishCloud(ros::Publisher pub_cloud, cloud_type cloud) {
   pub_cloud.publish(msg_cloud);
 }
 
+
+
+//////////////////////////////////////////////
 
 CoordinateTransform::CoordinateTransform(): nh("coordinate_transform"), nh_in_plane(nh,"in_plane"), nh_on_plane(nh,"on_plane") {
   std::cout << "CoordinateTransform instance has been created" << std::endl;
