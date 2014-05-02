@@ -1,4 +1,5 @@
 from matplotlib import pyplot
+import rospkg
 
 def randstr(n):
   import string
@@ -127,7 +128,8 @@ def publish_tf(xyz, rpy=(0,0,0), target_frame="/pick_position", camera_frame="/B
   camera._tf_broadcaster.sendTransform(xyz, quat, rospy.Time.now(), target_frame, camera_frame)
 
 def get_plane_model():
-  depth_plane_model = np.load("model/depth_plane_model.npy")
+  pkgpath = rospkg.get_path('clothbag_rim_detector')
+  depth_plane_model = np.load(pkgpath + "model/depth_plane_model.npy")
   depth_plane_model[depth_plane_model==0] = PLANE_HEIGHT*1000
   return camera.get_roi(depth_plane_model)
 

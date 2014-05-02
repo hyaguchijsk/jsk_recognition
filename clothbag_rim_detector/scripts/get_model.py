@@ -11,6 +11,7 @@ import sys
 import time
 
 import rospy
+import rospkg
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
@@ -64,8 +65,15 @@ def timer_callback(event):
   elif count > 5:
     rospy.loginfo("Getting plane_model has finished.")
     # save
-    np.save(os.path.dirname(sys.argv[0])+"/depth_plane_model", depth_plane_model)
-    cv2.imwrite(sys.argv[0]+"/depth_plane_model.jpg", depth_plane_model)
+    pkgpath = rospkg.get_path('clothbag_rim_detector')
+    np.save(
+      # os.path.dirname(sys.argv[0]) + "/depth_plane_model",
+      pkgpath + "/model/depth_plane_model",
+      depth_plane_model)
+    cv2.imwrite(
+      # sys.argv[0] + "/depth_plane_model.jpg",
+      pkgpath + "/model/depth_plane_model.jpg",
+      depth_plane_model)
     exit()
   cv2.imshow("depth_plane_model", depth2gray(depth_plane_model))
 
