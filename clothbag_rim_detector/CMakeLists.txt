@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS tf cv_bridge image_geometry roscpp rospy
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/groovy/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 #######################################
 ## Declare ROS messages and services ##
@@ -115,6 +115,11 @@ target_link_libraries(coordinate_transform ${PCL_LIBRARIES} ${OpenCV_LIBS} ${cat
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+install(PROGRAMS
+  scripts/run.sh scripts/main.py scripts/get_model.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 
 ## Mark executables and/or libraries for installation
  install(TARGETS coordinate_transform

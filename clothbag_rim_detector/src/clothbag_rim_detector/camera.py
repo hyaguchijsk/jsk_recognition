@@ -10,7 +10,7 @@ import tf
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
-import pcl
+# import pcl
 
 import numpy as np
 import scipy
