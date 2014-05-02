@@ -12,7 +12,7 @@ class CoordinateTransform {
   CoordinateTransform();
   ~CoordinateTransform();
 
-  Camera camera;
+  CameraImageToPointCloud camera;
   cv::Mat xyz_camera, xyz_world;
 
   void estimatePlaneModel(cloud_type cloud);

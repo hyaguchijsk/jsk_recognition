@@ -1,9 +1,9 @@
-/// @file camera.hpp
-/// @brief
+/// @file camera_image_to_point_cloud.hpp
+/// @brief converter class from sensor_msgs::Image to pcl::PointCloud
 /// @author Kenji Miyake, Hiroaki Yaguchi
 
-#ifndef CLOTHBAG_RIM_DETECTOR_CAMERA_HPP_
-#define CLOTHBAG_RIM_DETECTOR_CAMERA_HPP_
+#ifndef CLOTHBAG_RIM_DETECTOR_CAMERA_IMAGE_TO_POINT_CLOUD_HPP_
+#define CLOTHBAG_RIM_DETECTOR_CAMERA_IMAGE_TO_POINT_CLOUD_HPP_
 
 #include <iostream>
 #include <string>
@@ -34,55 +34,12 @@
 #include <Eigen/LU>
 #include <Eigen/Geometry>
 
+#include "clothbag_rim_detector/point_cloud_to_cv_mat.hpp"
+
 namespace clothbag_rim_detector {
 
-
-// typedef pcl::PointXYZRGBNormal point_type;
-typedef pcl::PointXYZRGB point_type;
-typedef pcl::PointCloud<point_type> cloud_type;
-typedef pcl::PointCloud<point_type>::Ptr cloud_type_ptr;
-
-
-/// @brief MatSet: Publish Mat images of PointCloud
-class MatSet {
- public:
-  // Mat
-  cv::Mat color;
-  cv::Mat depth;
-  cv::Mat mask;
-  cv::Mat xyz_camera;
-  cv::Mat xyz_world;
-  cv::Mat normal_camera;
-  cv::Mat normal_world;
-
-  MatSet(std::string topic_name);
-  void publish(cloud_type cloud, cloud_type cloud_world);
-
- private:
-  ros::NodeHandle nh;
-  // cv_bridge
-  cv_bridge::CvImage bridge;
-
-  // Publisher
-  // ros::Publisher pub_color;
-  // ros::Publisher pub_depth;
-  // ros::Publisher pub_mask;
-  ros::Publisher pub_xyz_camera;
-  ros::Publisher pub_xyz_world;
-  ros::Publisher pub_normal_camera;
-  ros::Publisher pub_normal_world;
-  // Create Mat from PointCloud
-  cv::Mat createMatXYZ(cloud_type cloud);
-  cv::Mat createMatNormal(cloud_type cloud);
-
-  cv::Mat createMatColor(cloud_type cloud);
-  cv::Mat createMatDepth(cloud_type cloud);
-  cv::Mat createMatMask(cloud_type cloud);
-};
-
-
-/// @brief Camera: import this from main program,and use camera.color camera.depth to get images
-class Camera {
+/// @brief CameraImageToPointCloud:
+class CameraImageToPointCloud {
  public:
   cv::Mat color, depth;
   cloud_type cloud;
@@ -93,8 +50,8 @@ class Camera {
   tf::StampedTransform stamped_transform;
   // Eigen::Transform<Scalar, 3, Eigen::Affine> transform_to_world;
 
-  Camera();
-  ~Camera();
+  CameraImageToPointCloud();
+  ~CameraImageToPointCloud();
 
   cloud_type createCloud(cv::Mat color, cv::Mat depth);
   void publishCloud(ros::Publisher pub_cloud, cloud_type cloud);
@@ -117,7 +74,7 @@ class Camera {
   // Publisher
   ros::Publisher pub_cloud;
 
-  MatSet mat_set;
+  PointCloudToCvMat mat_set;
 
   // callback functions
   void colorCallback(const sensor_msgs::ImageConstPtr &msg_color);
@@ -134,4 +91,4 @@ class Camera {
 
 }  // namespace
 
-#endif  // CLOTHBAG_RIM_DETECTOR_CAMERA_HPP_
+#endif  // CLOTHBAG_RIM_DETECTOR_CAMERA_IMAGE_TO_POINT_CLOUD_HPP_
