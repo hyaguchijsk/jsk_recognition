@@ -149,7 +149,7 @@ void CameraImageToPointCloud::init() {
   // register callback functions
   timer = nh.createTimer(ros::Duration(0.1), &CameraImageToPointCloud::timerCallback, this);
 
-  sub_color = nh.subscribe("camera/rgb/image_color", 1, &CameraImageToPointCloud::colorCallback, this);
+  sub_color = nh.subscribe("camera/rgb/image_raw", 1, &CameraImageToPointCloud::colorCallback, this);
   sub_depth = nh.subscribe("camera/depth_registered/image_raw", 1, &CameraImageToPointCloud::depthCallback, this);
   // sub_cloud = nh.subscribe("camera/depth_registered/points", 1, &CameraImageToPointCloud::cloudCallback, this);
 }
@@ -311,13 +311,23 @@ cloud_type CameraImageToPointCloud::createCloud(cv::Mat color, cv::Mat depth) {
   if(camera_info_flag)
   {
     // depth_registered/image_raw stores mm depth data
+    // openni2 stores m depth data
     double min_mm = 200, max_mm = 1000;
+    double dmax = 0.0;
+    double dmin = max_mm;
     for(int i=0;i<depth.rows;i++){
       for(int j=0;j<depth.cols;j++){
-        if(depth.at<float>(i,j)<min_mm || max_mm<depth.at<float>(i,j))continue;
+        // input values, d in [m]
+        // float d = depth.at<float>(i,j)/1000.0;
+        float d = depth.at<float>(i,j);
+        // if (d < dmin) dmin = d;
+        // if (d > dmax) dmax = d;
+
+        // if(depth.at<float>(i, j) < min_mm || max_mm < depth.at<float>(i, j))
+        if(((d * 1000.0) < min_mm) || (max_mm < (d * 1000.0)))
+          continue;
         point_type point;
-        // input values
-        float d = depth.at<float>(i,j)/1000.0;
+
         point.x = (j-camera_info.K[2])*d/camera_info.K[0];
         point.y = (i-camera_info.K[5])*d/camera_info.K[4];
         point.z = d;
@@ -332,6 +342,7 @@ cloud_type CameraImageToPointCloud::createCloud(cv::Mat color, cv::Mat depth) {
         cloud.at(j,i) = point;
       }
     }
+    //ROS_INFO("depth: %lf - %lf", dmin, dmax);
   }
 
   return cloud;
@@ -345,6 +356,7 @@ void CameraImageToPointCloud::publishCloud(ros::Publisher pub_cloud, cloud_type 
 
   pcl_conversions::fromPCL(cloud_tmp, msg_cloud);
   msg_cloud.header.frame_id = camera_info.header.frame_id;
+  msg_cloud.header.stamp = ros::Time::now();
 
   pub_cloud.publish(msg_cloud);
 }

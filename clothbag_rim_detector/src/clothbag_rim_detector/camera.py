@@ -10,8 +10,6 @@ import tf
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
-# import pcl
-
 import numpy as np
 import scipy
 import scipy.optimize
@@ -60,7 +58,7 @@ class Camera():
     self._set_up_tf()
 
     # Subscriber
-    self._sub_color= rospy.Subscriber("/camera/rgb/image_color", Image, self._color_callback)
+    self._sub_color= rospy.Subscriber("/camera/rgb/image_raw", Image, self._color_callback)
     self._sub_depth = rospy.Subscriber("/camera/depth_registered/image_raw", Image, self._depth_callback)
     self._sub_xyz_camera = rospy.Subscriber("/my_camera/mat/xyz_camera", Image, self._xyz_camera_callback)
     self._sub_xyz_world = rospy.Subscriber("/my_camera/mat/xyz_world", Image, self._xyz_world_callback)

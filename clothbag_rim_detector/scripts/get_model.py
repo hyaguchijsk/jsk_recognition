@@ -26,8 +26,6 @@ import threading
 class get_table_model():
   def __init__(self):
     self.time_start = time.time()
-    self.camera_info = False
-    self.camera_info_flag = False
     self.last_time = 0
     self.count = 0
 
@@ -40,11 +38,11 @@ class get_table_model():
       rospy.loginfo("Subscribe camera_info has finished.")
       # finish subscribe
       self.time_start = time.time()
-      camera_info_flag = True
+      self.camera_info_flag = True
       self.depth_plane_model = np.zeros(
-        (camera_info.height, camera_info.width),
+        (self.camera_info.height, self.camera_info.width),
         dtype = np.float64)
-      rospy.Timer(rospy.Duration(0.1), timer_callback)
+      rospy.Timer(rospy.Duration(0.1), self.timer_callback)
 
   def timer_callback(self, event):
     try:
@@ -69,12 +67,12 @@ class get_table_model():
           self.depth_plane_model + self.depth_world) / 2
         self.depth_plane_model[abs(diff) > 100] = 0
       self.last_time = int(time.time()) + 1
-      count += 1
-    elif count > 5:
+      self.count += 1
+    elif self.count > 5:
       rospy.loginfo("Getting plane_model has finished.")
 
       # save
-      pkgpath = rospkg.get_path('clothbag_rim_detector')
+      pkgpath = rospkg.RosPack().get_path('clothbag_rim_detector')
       np.save(
         # os.path.dirname(sys.argv[0]) + "/depth_plane_model",
         pkgpath + "/model/depth_plane_model",
@@ -118,6 +116,7 @@ def depth2gray(depth, min_mm = 300, max_mm = 1000, margin = 10):
       * (255 - margin) + margin)
     return np.uint8(gray)
   except:
+    rospy.logerr(e)
     return np.zeros(depth.shape, dtype = np.uint8)
 
 
