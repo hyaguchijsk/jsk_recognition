@@ -25,29 +25,65 @@ class Camera():
   def __init__(self):
     self._cv_bridge = CvBridge()
     self.camera_info_flag = False
-    self._sub_camera_info = rospy.Subscriber("/camera/depth_registered/camera_info", CameraInfo, self._camera_info_callback)
+    self._sub_camera_info = rospy.Subscriber(
+      "/camera/depth_registered/camera_info",
+      CameraInfo,
+      self._camera_info_callback)
 
   def update_transform(self, event):
     ## np.dot(mat, camera_xyz) = world_xyz
     try:
       # camera to world
-      self._tf_listener.waitForTransform(self._base_frame, self._camera_frame, rospy.Time(0), rospy.Duration(3))
-      xyz, quat = self._tf_listener.lookupTransform(self._base_frame, self._camera_frame, rospy.Time(0))
+      self._tf_listener.waitForTransform(self._base_frame,
+                                         self._camera_frame,
+                                         rospy.Time(0),
+                                         rospy.Duration(3))
+      xyz, quat = self._tf_listener.lookupTransform(self._base_frame,
+                                                    self._camera_frame,
+                                                    rospy.Time(0))
       mat = tf.transformations.quaternion_matrix(quat)
       mat[:3,3] += xyz
       self.transform = mat
+
       # lhand to world
       lhand_frame = "LHAND_CENTER"
-      self._tf_listener.waitForTransform(self._camera_frame, lhand_frame, rospy.Time(0), rospy.Duration(3))
-      self.lhand_xyz = np.array(self._tf_listener.lookupTransform(self._camera_frame, lhand_frame, rospy.Time(0))[0])
-      self.lhand_xyz_world = np.array(self._tf_listener.lookupTransform(self._base_frame, lhand_frame, rospy.Time(0))[0])
+      self._tf_listener.waitForTransform(self._camera_frame,
+                                         lhand_frame, rospy.Time(0),
+                                         rospy.Duration(3))
+      self.lhand_xyz = np.array(
+        self._tf_listener.lookupTransform(self._camera_frame,
+                                          lhand_frame,
+                                          rospy.Time(0))
+        [0])
+      self.lhand_xyz_world = np.array(
+        self._tf_listener.lookupTransform(self._base_frame,
+                                          lhand_frame,
+                                          rospy.Time(0))
+        [0])
       self.lhand_point = self.xyz_world2point(np.array(self.lhand_xyz_world))
+      # rospy.loginfo("left hand:")
+      # rospy.loginfo(str(self.lhand_point))
+
       # rhand to world
       rhand_frame = "RHAND_CENTER"
-      self._tf_listener.waitForTransform(self._camera_frame, rhand_frame, rospy.Time(0), rospy.Duration(3))
-      self.rhand_xyz = np.array(self._tf_listener.lookupTransform(self._camera_frame, rhand_frame, rospy.Time(0))[0])
-      self.rhand_xyz_world = np.array(self._tf_listener.lookupTransform(self._base_frame, rhand_frame, rospy.Time(0))[0])
+      self._tf_listener.waitForTransform(self._camera_frame,
+                                         rhand_frame,
+                                         rospy.Time(0),
+                                         rospy.Duration(3))
+      self.rhand_xyz = np.array(
+        self._tf_listener.lookupTransform(self._camera_frame,
+                                          rhand_frame,
+                                          rospy.Time(0))
+        [0])
+      self.rhand_xyz_world = np.array(
+        self._tf_listener.lookupTransform(self._base_frame,
+                                          rhand_frame,
+                                          rospy.Time(0))
+        [0])
       self.rhand_point = self.xyz_world2point(self.rhand_xyz_world)
+      # rospy.loginfo("right hand:")
+      # rospy.loginfo(str(self.rhand_point))
+
     except (tf.LookupException, tf.ConnectivityException, tf.Exception) as e:
       rospy.logerr("Camera.update_transform: error")
       rospy.logerr(e)
@@ -58,12 +94,18 @@ class Camera():
     self._set_up_tf()
 
     # Subscriber
-    self._sub_color= rospy.Subscriber("/camera/rgb/image_raw", Image, self._color_callback)
-    self._sub_depth = rospy.Subscriber("/camera/depth_registered/image_raw", Image, self._depth_callback)
-    self._sub_xyz_camera = rospy.Subscriber("/my_camera/mat/xyz_camera", Image, self._xyz_camera_callback)
-    self._sub_xyz_world = rospy.Subscriber("/my_camera/mat/xyz_world", Image, self._xyz_world_callback)
-    self._sub_normal_camera = rospy.Subscriber("/my_camera/mat/normal_camera", Image, self._normal_camera_callback)
-    self._sub_normal_world = rospy.Subscriber("/my_camera/mat/normal_world", Image, self._normal_world_callback)
+    self._sub_color= rospy.Subscriber(
+      "/camera/rgb/image_raw", Image, self._color_callback)
+    self._sub_depth = rospy.Subscriber(
+      "/camera/depth_registered/image_raw", Image, self._depth_callback)
+    self._sub_xyz_camera = rospy.Subscriber(
+      "/my_camera/mat/xyz_camera", Image, self._xyz_camera_callback)
+    self._sub_xyz_world = rospy.Subscriber(
+      "/my_camera/mat/xyz_world", Image, self._xyz_world_callback)
+    self._sub_normal_camera = rospy.Subscriber(
+      "/my_camera/mat/normal_camera", Image, self._normal_camera_callback)
+    self._sub_normal_world = rospy.Subscriber(
+      "/my_camera/mat/normal_world", Image, self._normal_world_callback)
 
     # timer
     rospy.Timer(rospy.Duration(0.1), self.update_transform)
@@ -87,22 +129,22 @@ class Camera():
     K = self.camera_info.K
     cx, cy, self.fx, self.fy = K[2], K[5], K[0], K[4]
 
-    self.x_margin, self.y_margin = 0, 0 # turn off roi
+    self.x_margin, self.y_margin = 0, 0  # turn off roi
     # self.x_margin, self.y_margin = 70, 40
-    self.width = self.camera_info.width - 2*self.x_margin
-    self.height = self.camera_info.height - 2*self.y_margin
+    self.width = self.camera_info.width - 2 * self.x_margin
+    self.height = self.camera_info.height - 2 * self.y_margin
     self.cx = cx - self.x_margin
     self.cy = cy - self.y_margin
 
-    self.color = np.zeros((self.height, self.width,3), dtype=np.uint8)
-    self.depth = np.zeros((self.height, self.width), dtype=np.float64)
-    self.depth_world = np.zeros((self.height, self.width), dtype=np.float64)
+    self.color = np.zeros((self.height, self.width, 3), dtype = np.uint8)
+    self.depth = np.zeros((self.height, self.width), dtype = np.float64)
+    self.depth_world = np.zeros((self.height, self.width), dtype = np.float64)
 
-    self.is_point_mask = np.zeros((self.height, self.width), dtype=np.bool)
+    self.is_point_mask = np.zeros((self.height, self.width), dtype = np.bool)
 
     # PointCloud
-    self.xyz_camera = np.zeros((self.height, self.width, 3), dtype=np.float64)
-    self.xyz_world = np.zeros((self.height, self.width, 3), dtype=np.float64)
+    self.xyz_camera = np.zeros((self.height, self.width, 3), dtype = np.float64)
+    self.xyz_world = np.zeros((self.height, self.width, 3), dtype = np.float64)
 
 
   def _set_up_tf(self):
@@ -116,8 +158,10 @@ class Camera():
   def get_camera2world_mat(self):
     ## np.dot(mat, camera_xyz) = world_xyz
     try:
-      self._tf_listener.waitForTransform(self._base_frame, self._camera_frame, rospy.Time(0), rospy.Duration(3))
-      xyz, quat = self._tf_listener.lookupTransform(self._base_frame, self._camera_frame, rospy.Time(0))
+      self._tf_listener.waitForTransform(
+        self._base_frame, self._camera_frame, rospy.Time(0), rospy.Duration(3))
+      xyz, quat = self._tf_listener.lookupTransform(
+        self._base_frame, self._camera_frame, rospy.Time(0))
       mat = tf.transformations.quaternion_matrix(quat)
       mat[:3,3] += xyz
       return mat
@@ -130,8 +174,10 @@ class Camera():
   def get_hand_point(self, hand):
     hand_frame = hand[0].upper() + "HAND_CENTER"
     try:
-      self._tf_listener.waitForTransform(self._camera_frame, hand_frame, rospy.Time(0), rospy.Duration(3))
-      x, y, z = self._tf_listener.lookupTransform(self._camera_frame, hand_frame, rospy.Time(0))[0]
+      self._tf_listener.waitForTransform(
+        self._camera_frame, hand_frame, rospy.Time(0), rospy.Duration(3))
+      x, y, z = self._tf_listener.lookupTransform(
+        self._camera_frame, hand_frame, rospy.Time(0))[0]
       px, py = self.get_2dpoint_from_3dpoint(x, y, z)
       return (px, py)
     except (tf.LookupException, tf.ConnectivityException, tf.Exception) as e:
@@ -141,14 +187,16 @@ class Camera():
 
   def check_shape(self, point):
     img_shape = self.xyz_world.shape[:2]
-    if ((point[0] < 0) or (img_shape[1] < point[0])) or ((point[1] < 0) or (img_shape[0] < point[1])):
+    if (((point[0] < 0) or (img_shape[1] < point[0])) or
+        ((point[1] < 0) or (img_shape[0] < point[1]))):
       return False
     else:
       return True
 
   def point2xyz_world(self, point):
     # img_shape = self.xyz_world.shape[:2]
-    # if ((point[0] < 0) or (img_shape[1] < point[0])) or ((point[1] < 0) or (img_shape[0] < point[1])):
+    # if (((point[0] < 0) or (img_shape[1] < point[0])) or
+    #     ((point[1] < 0) or (img_shape[0] < point[1]))):
     #   rospy.logerr("point2xyz_world: error, out of range")
     #   return np.array([0,0,0])
     return self.xyz_world[point[1], point[0]]
@@ -164,6 +212,7 @@ class Camera():
       return self.xyz2point(xyz_camera[0], xyz_camera[1], xyz_camera[2])
     except Exception as e:
       rospy.logerr(e)
+      rospy.logerr("xyz: " + str(x) + ", " + str(y) + ", " + str(z))
       rospy.logerr("xyz_world2point: error")
       return (0,0)
 
@@ -174,58 +223,76 @@ class Camera():
       y = tmp[1]
       z = tmp[2]
     d = 1000.0 * z
-    px = int(self.cx + 1000.0*x/d*self.fx)
-    py = int(self.cy + 1000.0*y/d*self.fy)
+    px = int(self.cx + 1000.0 * x / d * self.fx)
+    py = int(self.cy + 1000.0 * y / d * self.fy)
     return np.array((px, py))
 
   def get_roi(self, img):
-    return img[self.y_margin:self.height+self.y_margin, self.x_margin:self.width+self.x_margin]
+    return img[self.y_margin : self.height + self.y_margin,
+               self.x_margin : self.width + self.x_margin]
 
   def restore_roi(self, roi_img):
     if len(roi_img.shape) == 2:
-      res = np.zeros((self.camera_info.height, self.camera_info.width), dtype=roi_img.dtype)
+      res = np.zeros(
+        (self.camera_info.height, self.camera_info.width),
+        dtype = roi_img.dtype)
     else:
-      res = np.zeros((self.camera_info.height, self.camera_info.width, roi_img.shape[2]), dtype=roi_img.dtype)
+      res = np.zeros(
+        (self.camera_info.height, self.camera_info.width, roi_img.shape[2]),
+        dtype = roi_img.dtype)
 
-    res[self.y_margin:self.height+self.y_margin, self.x_margin:self.width+self.x_margin] = roi_img
+    res[self.y_margin : self.height + self.y_margin,
+        self.x_margin : self.width + self.x_margin] = roi_img
     return res
+
 
   # callback functions of mat
   def _color_callback(self, msg_color):
     try:
-      self.color = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_color, "bgr8")))
+      self.color = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_color, "bgr8")))
       self.color_hsv = cv2.cvtColor(self.color, cv2.COLOR_BGR2HSV)
     except CvBridgeError as e:
       rospy.logerr(e)
 
+
   def _depth_callback(self, msg_depth):
     try:
-      self.depth = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_depth, "32FC1")))
+      self.depth = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_depth, "32FC1")))
       self.is_point_mask = (self.depth != 0)
     except CvBridgeError as e:
       rospy.logerr(e)
 
+
   def _xyz_camera_callback(self, msg_xyz):
     try:
-      self.xyz_camera = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_xyz, "32FC3")))
+      self.xyz_camera = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_xyz, "32FC3")))
     except CvBridgeError as e:
       rospy.logerr(e)
 
+
   def _xyz_world_callback(self, msg_xyz):
     try:
-      self.xyz_world = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_xyz, "32FC3")))
+      self.xyz_world = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_xyz, "32FC3")))
       self.depth_world = self.xyz_world[:,:,2] * 1000.0
     except CvBridgeError as e:
       rospy.logerr(e)
 
+
   def _normal_camera_callback(self, msg_normal):
     try:
-      self.normal_camera = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_normal, "32FC3")))
+      self.normal_camera = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_normal, "32FC3")))
     except CvBridgeError as e:
       rospy.logerr(e)
 
+
   def _normal_world_callback(self, msg_normal):
     try:
-      self.normal_world = self.get_roi(np.asarray(self._cv_bridge.imgmsg_to_cv(msg_normal, "32FC3")))
+      self.normal_world = self.get_roi(
+        np.asarray(self._cv_bridge.imgmsg_to_cv(msg_normal, "32FC3")))
     except CvBridgeError as e:
       rospy.logerr(e)

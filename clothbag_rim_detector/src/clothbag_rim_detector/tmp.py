@@ -21,8 +21,8 @@ def get_hand_point(color):
   img = color.copy()
   mask = -find_all_zero(bag_area_color)
   z_max = camera.depth_world.max()
-  mask[camera.depth_world<z_max-20] = 0
-  mask[camera.depth_world>z_max-10] = 0
+  mask[camera.depth_world < (z_max - 20)] = 0
+  mask[camera.depth_world > (z_max - 10)] = 0
   mask = get_erode_and_dilate_mask(img*dstack_mask(mask), 0)[:,:,0]
   x = mask.nonzero()[1]
   y = mask.nonzero()[0]

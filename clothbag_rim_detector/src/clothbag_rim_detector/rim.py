@@ -37,23 +37,35 @@ def get_rims():
 def solve_plane_equation(point1, point2, point3):
     vector12 = point2 - point1
     vector13 = point3 - point1
+
     # calc normal vector
     normal_vector = scipy.cross(vector12, vector13)
+
     # normal vector to unit vector
     norm = np.sqrt(scipy.dot(normal_vector, normal_vector))
     unit_normal_vector = normal_vector / norm
-    d = -(unit_normal_vector[0]*point1[0] +
-           unit_normal_vector[1]*point1[1] +
-           unit_normal_vector[2]*point1[2])
+    d = -(unit_normal_vector[0] * point1[0] +
+          unit_normal_vector[1] * point1[1] +
+          unit_normal_vector[2] * point1[2])
+
     # return a, b, c, d
-    return [unit_normal_vector[0], unit_normal_vector[1], unit_normal_vector[2], d]
+    return [unit_normal_vector[0],
+            unit_normal_vector[1],
+            unit_normal_vector[2],
+            d]
 
 def calc_dist_point_to_point(point_mat, point):
   diff_mat = point_mat - point
   if len(point_mat.shape) == 3:
-    func_len = lambda mat: np.sqrt((mat[:,:,0]**2)+(mat[:,:,1]**2)+(mat[:,:,2]**2))
-  if len(point_mat.shape) == 2:
-    func_len = lambda mat: np.sqrt((mat[:,0]**2)+(mat[:,1]**2)+(mat[:,2]**2))
+    func_len = (lambda mat:
+                  np.sqrt((mat[:, :, 0] ** 2) +
+                          (mat[:, :, 1] ** 2) +
+                          (mat[:, :, 2] ** 2)))
+  elif len(point_mat.shape) == 2:
+    func_len = (lambda mat:
+                  np.sqrt((mat[:, 0] ** 2) +
+                          (mat[:, 1] ** 2) +
+                          (mat[:, 2] ** 2)))
   return func_len(diff_mat)
 
 def calc_dist_point_to_3dline(point_mat, p_line_start, p_line_end):
@@ -74,10 +86,28 @@ def calc_dist_point_to_plane(point_mat, plane_param, direction=False):
     return abs(a*x + b*y + c*z + d)/np.sqrt(a**2 + b**2 + c**2)
 
 # extract_rim
-def extract_rim_line(color_seg, xyz_world, point_base_xyz, point_corner_xyz, r=30/1000.0, fill_lacking=False):
-  func = lambda xyz_array: calc_dist_point_to_3dline(xyz_array, point_base_xyz[np.newaxis, np.newaxis, :], point_corner_xyz[np.newaxis, np.newaxis, :])
-  point_base = camera.xyz_world2point(point_base_xyz[0], point_base_xyz[1], point_base_xyz[2])
-  point_corner = camera.xyz_world2point(point_corner_xyz[0], point_corner_xyz[1], point_corner_xyz[2])
+def extract_rim_line(color_seg,
+                     xyz_world,
+                     point_base_xyz,
+                     point_corner_xyz,
+                     r=30/1000.0,
+                     fill_lacking = False):
+  func = (
+    lambda xyz_array: calc_dist_point_to_3dline(
+      xyz_array,
+      point_base_xyz[np.newaxis, np.newaxis, :],
+      point_corner_xyz[np.newaxis, np.newaxis, :]))
+
+  # rospy.loginfo("point_base_xyz: ")
+  # rospy.loginfo(str(point_base_xyz))
+  # rospy.loginfo("point_corner_xyz: ")
+  # rospy.loginfo(str(point_corner_xyz))
+  point_base = camera.xyz_world2point(point_base_xyz[0],
+                                      point_base_xyz[1],
+                                      point_base_xyz[2])
+  point_corner = camera.xyz_world2point(point_corner_xyz[0],
+                                        point_corner_xyz[1],
+                                        point_corner_xyz[2])
 
   margin = 10
   lt_x = min(point_base[0], point_corner[0]) - margin
@@ -109,11 +139,16 @@ def extract_rim_plane(color_seg, xyz_world, plane_param, r=30/1000.0):
 
 def extract_rim(color_seg, xyz_world, func, r=30/1000.0):
   seg_area = (-find_all_zero(color_seg)).nonzero()
+
   if len(seg_area[0])==0:
-    return np.zeros(color_seg.shape[:2], dtype="bool"), np.zeros(color_seg.shape[:2], dtype="bool")
+    return (np.zeros(color_seg.shape[:2], dtype="bool"),
+            np.zeros(color_seg.shape[:2], dtype="bool"))
+
   margin = 10
-  lt = (max(0,seg_area[0].min()-margin), max(0,seg_area[1].min()-margin) )
-  rb = (min(480, seg_area[0].max()+margin), min(640, seg_area[1].max()+margin))
+  lt = (max(0, seg_area[0].min() - margin),
+        max(0, seg_area[1].min() - margin))
+  rb = (min(480, seg_area[0].max() + margin),
+        min(640, seg_area[1].max() + margin))
   res_xyz = xyz_world.copy()
 
   mat_dist = func(res_xyz[lt[0]:rb[0], lt[1]:rb[1]])

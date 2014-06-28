@@ -39,9 +39,17 @@ def mask2points(mask):
 def get_center_of_mask(mask):
   xy = camera.xyz_world[:,:,:2][mask.nonzero()]
   if xy.any():
-    mean_xyz, eigenvector = cv2.PCACompute(xy)
+    mean_xyz, eigenvector = cv2.PCACompute(xy[~np.isnan(xy).any(1)])
+
+    # rospy.loginfo("mean_xyz: ")
+    # rospy.loginfo(str(mean_xyz))
+
     global mean_point
-    mean_point = np.reshape( camera.xyz_world2point(mean_xyz[0,0], mean_xyz[0,1], PLANE_HEIGHT), (1,2) )
+    mean_point = np.reshape(
+      camera.xyz_world2point(mean_xyz[0, 0],
+                             mean_xyz[0, 1],
+                             PLANE_HEIGHT),
+      (1, 2) )
     return mean_point[0]
   else:
     return None
