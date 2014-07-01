@@ -79,6 +79,9 @@ void calcOGKeyPoints(cv::Mat& src,
 
   result.clear();
 
+  // key point is that:
+  //  1) has local mixima intensity in area of (bs * bs)
+  //  2) its intensity is over threshold
   for (int y = bs; y < height - bs; y++) {
     for (int x = bs; x < width - bs; x++) {
       cv::Vec3b& px0 = dst.at<cv::Vec3b>(y, x);

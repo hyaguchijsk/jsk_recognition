@@ -36,6 +36,8 @@ add_executable(hough_lines src/hough_lines.cpp)
 add_executable(rectangle_detector src/rectangle_detector.cpp)
 add_library(oriented_gradient src/oriented_gradient.cpp)
 add_executable(oriented_gradient_node src/oriented_gradient_node.cpp)
+add_library(og_graph_structure src/og_graph_structure.cpp)
+add_executable(og_graph_structure_node src/og_graph_structure_node.cpp)
 
 macro(jsk_perception_nodelet _nodelet_cpp _nodelet_class _single_nodelet_exec_name)
   list(APPEND jsk_perception_nodelet_sources ${_nodelet_cpp})
@@ -73,6 +75,8 @@ target_link_libraries(white_balance_converter  ${catkin_LIBRARIES} ${OpenCV_LIBR
 target_link_libraries(hough_lines              ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(rectangle_detector       ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
 target_link_libraries(oriented_gradient_node   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} oriented_gradient)
+target_link_libraries(og_graph_structure oriented_gradient)
+target_link_libraries(og_graph_structure_node  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} oriented_gradient og_graph_structure)
 
 add_dependencies(camshiftdemo             ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 add_dependencies(virtual_camera_mono      ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
