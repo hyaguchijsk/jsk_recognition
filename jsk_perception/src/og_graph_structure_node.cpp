@@ -21,13 +21,32 @@ class OGGraphStructureNode {
       handle_(nh), image_transport_(nh) {
     std::string param_name = "eval_mode";
     std::string eval_mode = "line";
-    handle_.getParam(param_name, eval_mode);
 
-    if (eval_mode == "line") {
-      setEvalLine();
-    } else if (eval_mode == "parallel") {
-      setEvalParallel();
-    }
+    param_name = "ogkey_intensity_thresh";
+    int ogkey_intensity_thresh = kOGKeyIntensityThresh;
+    handle_.getParam(param_name, ogkey_intensity_thresh);
+    oggs_.ogkey_intensity_thresh(ogkey_intensity_thresh);
+
+    param_name = "ogkey_intensity_block_size";
+    int ogkey_intensity_block_size = kOGKeyIntensityBlockSize;
+    handle_.getParam(param_name, ogkey_intensity_block_size);
+    oggs_.ogkey_intensity_block_size(ogkey_intensity_block_size);
+
+    param_name = "lsh_block_size";
+    int lsh_block_size = kLSHBlockSize;
+    handle_.getParam(param_name, lsh_block_size);
+    oggs_.lsh_block_size(lsh_block_size);
+
+    param_name = "lsh_search_radius";
+    double lsh_search_radius = kLSHSearchRadius;
+    handle_.getParam(param_name, lsh_search_radius);
+    oggs_.lsh_search_radius(lsh_search_radius);
+
+    param_name = "pair_relation_thresh";
+    double pair_relation_thresh = kPairRelationThresh;
+    handle_.getParam(param_name, pair_relation_thresh);
+    oggs_.pair_relation_thresh(pair_relation_thresh);
+
 
     image_sub_ = image_transport_.subscribe(
         "/camera/rgb/image_raw", 1,
@@ -36,14 +55,6 @@ class OGGraphStructureNode {
   }
 
   ~OGGraphStructureNode() {
-  }
-
-  void setEvalLine() {
-    oggs_.setEvalLine();
-  }
-
-  void setEvalParallel() {
-    oggs_.setEvalParallel();
   }
 
  private:

@@ -21,6 +21,14 @@
 
 namespace jsk_perception {
 
+// constants
+const int kOGKeyIntensityThresh = 32;
+const int kOGKeyIntensityBlockSize = 2;
+const int kLSHBlockSize = 16;
+const double kLSHSearchRadius = 16.0;
+const double kPairRelationThresh = 32.0;
+
+
 // inline functions
 
 // @brief calc sqrt of inner product between 2 oriented gradients
@@ -90,8 +98,49 @@ class OGGraphStructure {
   void setEvalParallel();
 
   void convert(cv::Mat& cvimg);
-  void getResult(std::vector<double>& res);
+  int calcMaxOrientation(cv::Mat& ogimg);
+  void calcPair(cv::Mat& ogimg);
+  void checkConnectivity();
+  void checkDistance();
+
   void drawResult(cv::Mat& resimg);
+
+
+  // setter and getter
+  int ogkey_intensity_thresh() {
+    return ogkey_intensity_thresh_;
+  }
+  void ogkey_intensity_thresh(int val) {
+    ogkey_intensity_thresh_ = val;
+  }
+
+  int ogkey_intensity_block_size() {
+    return ogkey_intensity_block_size_;
+  }
+  void ogkey_intensity_block_size(int val) {
+    ogkey_intensity_block_size_ = val;
+  }
+
+  int lsh_block_size() {
+    return lsh_block_size_;
+  }
+  void lsh_block_size(int val) {
+    lsh_block_size_ = val;
+  }
+
+  double lsh_search_radius() {
+    return lsh_search_radius_;
+  }
+  void lsh_search_radius(double val) {
+    lsh_search_radius_ = val;
+  }
+
+  double pair_relation_thresh() {
+    return pair_relation_thresh_;
+  }
+  void pair_relation_thresh(double val) {
+    pair_relation_thresh_ = val;
+  }
 
  private:
   int ogkey_intensity_thresh_;
@@ -101,9 +150,15 @@ class OGGraphStructure {
   double pair_relation_thresh_;
 
   std::vector<cv::Point> keypoints_;
-  std::vector<std::pair<cv::Point, cv::Point> > pairs_;
+  std::vector<std::pair<cv::Point, cv::Point> > line_pairs_;
+  std::vector<std::pair<size_t, size_t> > line_pair_indices_;
+  std::vector<std::pair<cv::Point, cv::Point> > parallel_pairs_;
+  std::vector<std::pair<size_t, size_t> > parallel_pair_indices_;
+  std::vector<double> parallel_pair_distances_;
   int max_theta_;
-  double (*evalPair_)(int, int, int, int, double);
+
+  void findEndPoints_(const std::vector<std::pair<size_t, size_t> >& pairs,
+                      std::vector<size_t>& end_points);
 };  // OGGraphStructure
 
 // functions to eval og pair
