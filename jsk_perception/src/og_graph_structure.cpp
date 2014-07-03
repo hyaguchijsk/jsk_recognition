@@ -89,17 +89,16 @@ OGGraphStructure::~OGGraphStructure() {
 // @param cvimg input image
 void OGGraphStructure::convert(cv::Mat& cvimg){
   // oriented gradient key points
-  cv::Mat ogimg;
-  calcOGKeyPoints(cvimg, ogimg, keypoints_,
+  calcOGKeyPoints(cvimg, ogimg_, keypoints_,
                   ogkey_intensity_thresh_,
                   ogkey_intensity_block_size_);
 
   // // calc max orientation from histogram
-  // max_theta_ = calcMaxOrientation(ogimg);
+  // max_theta_ = calcMaxOrientation(ogimg_);
   // std::cout << "Image Orientation = " << max_theta_ << std::endl;
 
   // calc pair
-  calcPair(ogimg);
+  calcPair(ogimg_);
 
   // check pair relation
   // for line detection, check connectivity
@@ -322,7 +321,8 @@ void OGGraphStructure::checkDistance() {
   // create another keypoints
   std::vector<cv::Point> parallel_keypoints;
   for (size_t i = 0; i < parallel_pair_distances_.size(); i++) {
-    if (parallel_pair_distances_[i] < mean + 1.0) {
+    if ((parallel_pair_distances_[i] > (mean - 1.0)) &&
+        (parallel_pair_distances_[i] < (mean + 1.0))) {
       parallel_keypoints.push_back(
           cv::Point((parallel_pairs_[i].first.x +
                      parallel_pairs_[i].second.x) /2,

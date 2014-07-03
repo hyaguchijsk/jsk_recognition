@@ -142,7 +142,13 @@ class OGGraphStructure {
     pair_relation_thresh_ = val;
   }
 
+  cv::Mat& oriented_gradient_image() {
+    return ogimg_;
+  }
+
  private:
+  cv::Mat ogimg_;
+
   int ogkey_intensity_thresh_;
   int ogkey_intensity_block_size_;
   int lsh_block_size_;
