@@ -21,6 +21,9 @@
 namespace jsk_perception {
 
 void calcOrientedGradient(cv::Mat& src, cv::Mat& dst);
+void calcOrientedGradient2D(cv::Mat& src, cv::Mat& dst);
+void cvtOGtoHSV(cv::Mat& src, cv::Mat& dst);
+
 void calcOGKeyPoints(cv::Mat& src,
                      cv::Mat& dst,
                      std::vector<cv::Point>& result,

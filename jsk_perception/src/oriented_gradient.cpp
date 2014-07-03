@@ -5,22 +5,27 @@
 namespace jsk_perception {
 
 // @brief calc 8 neighbor oriented gradient image
-// @param src source image
+// @param src source image (Mono)
 // @param dst destination image (HSV, H : orientation, V : intensity)
 void calcOrientedGradient(cv::Mat& src, cv::Mat& dst) {
-  int width, height;
-  cv::Mat gimg;
+  cv::Mat ogimg2d;
+  calcOrientedGradient2D(src, ogimg2d);
+  cvtOGtoHSV(ogimg2d, dst);
+}
 
-  width = src.cols;
-  height = src.rows;
 
-  cv::cvtColor(src, gimg, CV_BGR2GRAY);
+// @brief calc 8 neighbor oriented gradient image into 2ch double
+// @param src source image (Mono)
+// @param dst destination image (CV_64FC2, you can access via Vec2d, [o, m])
+void calcOrientedGradient2D(cv::Mat& src, cv::Mat& dst) {
+  int width = src.cols;
+  int height = src.rows;
 
-  dst.create(height, width, CV_8UC3);
+  dst.create(height, width, CV_64FC2);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      cv::Vec3b& px=dst.at<cv::Vec3b>(y, x);
-      for (int k = 0; k < 3; k++) {
+      cv::Vec2d& px = dst.at<cv::Vec2d>(y, x);
+      for (size_t k = 0; k < 2; k++) {
         px[k] = 0;
       }
     }
@@ -35,31 +40,44 @@ void calcOrientedGradient(cv::Mat& src, cv::Mat& dst) {
       float dxx,dyy,dxy,dyx;
       double dth;
 
-      dxx = (float)gimg.at<unsigned char>(y, x + 1)
-        - (float)gimg.at<unsigned char>(y, x - 1);
-      dyy = (float)gimg.at<unsigned char>(y + 1, x)
-        - (float)gimg.at<unsigned char>(y - 1, x);
-      dxy = (float)gimg.at<unsigned char>(y + 1, x + 1)
-        - (float)gimg.at<unsigned char>(y - 1, x - 1);
-      dyx = (float)gimg.at<unsigned char>(y + 1, x - 1)
-        - (float)gimg.at<unsigned char>(y - 1, x + 1);
+      dxx = (float)src.at<unsigned char>(y, x + 1)
+        - (float)src.at<unsigned char>(y, x - 1);
+      dyy = (float)src.at<unsigned char>(y + 1, x)
+        - (float)src.at<unsigned char>(y - 1, x);
+      dxy = (float)src.at<unsigned char>(y + 1, x + 1)
+        - (float)src.at<unsigned char>(y - 1, x - 1);
+      dyx = (float)src.at<unsigned char>(y + 1, x - 1)
+        - (float)src.at<unsigned char>(y - 1, x + 1);
 
       dx = 0.5 * (dxx + 0.5 * r2 * (dxy - dyx));
       dy = 0.5 * (dyy + 0.5 * r2 * (dxy + dyx));
       // dx = dxx; dy = dyy;
 
-      m = (int)(sqrt(0.5 * (dx * dx + dy * dy)));
+      m = sqrt(0.5 * (dx * dx + dy * dy));
 
       dth = atan2(dy, dx) * 180.0 / M_PI;
       if (dth < 0.0) dth += 180.0;
       if (dth >= 180.0) dth -= 180.0;
-      th = (int)dth;
 
-      dst.at<cv::Vec3b>(y, x) = cv::Vec3b(th, 255, m);
-
+      dst.at<cv::Vec2d>(y, x) = cv::Vec2d(dth, m);
     }
   }
 }
+
+void cvtOGtoHSV(cv::Mat& src, cv::Mat& dst) {
+  int width = src.cols;
+  int height = src.rows;
+  dst.create(height, width, CV_8UC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      cv::Vec2d& og = src.at<cv::Vec2d>(y, x);
+      unsigned char th = static_cast<unsigned char>(og[0]);
+      unsigned char m = static_cast<unsigned char>(og[1]);
+      dst.at<cv::Vec3b>(y, x) = cv::Vec3b(th, 255, m);
+    }
+  }
+}
+
 
 // @brief calc key points from oriented gradient image
 // @param src source image
@@ -100,17 +118,14 @@ void calcOGKeyPoints(cv::Mat& src,
 }
 
 // @brief calc 8 neighbor scaled oriented gradient image
-// @param src source image
+// @param src source image (Mono)
 // @param dst destination image (HSV, H : orientation, V : intensity)
 // @param scale scale
 void calcScaledOrientedGradient(cv::Mat& src, cv::Mat& dst, int scale) {
-  cv::Mat gimg;
   cv::Mat intimg, sqintimg, tintimg;
 
   int width = src.cols;
   int height = src.rows;
-
-  cv::cvtColor(src, gimg, CV_BGR2GRAY);
 
   dst.create(height, width, CV_8UC3);
   unsigned char *gradbuf = dst.ptr();
@@ -119,7 +134,7 @@ void calcScaledOrientedGradient(cv::Mat& src, cv::Mat& dst, int scale) {
   sqintimg.create(height + 1, width + 1, CV_32S);
   tintimg.create(height + 1, width + 1, CV_32S);
 
-  cv::integral(gimg, intimg, sqintimg, tintimg);
+  cv::integral(src, intimg, sqintimg, tintimg);
 
   float r2 = sqrt(2.0);
   int xidx, idx;
@@ -188,10 +203,9 @@ void calcScaledOrientedGradient(cv::Mat& src, cv::Mat& dst, int scale) {
 }
 
 // @brief calc key points from scaled oriented gradient image
-// @param src source image
+// @param src source image (Mono)
 // @param dst destination image (HSV, H : orientation, V : intensity)
 void calcSOGKeyPoints(cv::Mat& src, cv::Mat& dst) {
-  cv::Mat gimg;
   cv::Mat intimg, sqintimg, tintimg;
 
   int width = src.cols;
@@ -200,8 +214,6 @@ void calcSOGKeyPoints(cv::Mat& src, cv::Mat& dst) {
   std::vector<std::vector<float> > gradimglist;
   std::vector<int> scalelist;
 
-  cv::cvtColor(src, gimg, CV_BGR2GRAY);
-
   dst.create(height, width, CV_8UC3);
   unsigned char *gradbuf = dst.ptr();
 
@@ -209,7 +221,7 @@ void calcSOGKeyPoints(cv::Mat& src, cv::Mat& dst) {
   sqintimg.create(height + 1, width + 1, CV_32S);
   tintimg.create(height + 1, width + 1, CV_32S);
 
-  cv::integral(gimg, intimg, sqintimg, tintimg);
+  cv::integral(src, intimg, sqintimg, tintimg);
 
   // scale=1,1+1*2,1+2*2,...,1+s*2
   int maxscale = 10;
@@ -230,14 +242,14 @@ void calcSOGKeyPoints(cv::Mat& src, cv::Mat& dst) {
       float dx, dy;
       float dxx, dyy, dxy, dyx;
 
-      dxx = (float)gimg.at<unsigned char>(y, x + 1)
-        - (float)gimg.at<unsigned char>(y, x - 1);
-      dyy = (float)gimg.at<unsigned char>(y + 1, x)
-        - (float)gimg.at<unsigned char>(y - 1, x);
-      dxy = (float)gimg.at<unsigned char>(y + 1, x + 1)
-        - (float)gimg.at<unsigned char>(y - 1, x - 1);
-      dyx = (float)gimg.at<unsigned char>(y + 1, x - 1)
-        - (float)gimg.at<unsigned char>(y - 1, x + 1);
+      dxx = (float)src.at<unsigned char>(y, x + 1)
+        - (float)src.at<unsigned char>(y, x - 1);
+      dyy = (float)src.at<unsigned char>(y + 1, x)
+        - (float)src.at<unsigned char>(y - 1, x);
+      dxy = (float)src.at<unsigned char>(y + 1, x + 1)
+        - (float)src.at<unsigned char>(y - 1, x - 1);
+      dyx = (float)src.at<unsigned char>(y + 1, x - 1)
+        - (float)src.at<unsigned char>(y - 1, x + 1);
 
       dx = 0.5 * (dxx + 0.5 * r2 * (dxy - dyx));
       dy = 0.5 * (dyy + 0.5 * r2 * (dxy + dyx));
